@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  bitaxe-bot:
+    build: .
+    container_name: bitaxe-bot
+    restart: always
+    # 중요: 호스트 네트워크 모드를 써야 192.168.x.x 채굴기에 접근 가능
+    network_mode: "host"
+    # .env 파일은 이미지에 굽지 않고 서버 파일을 읽도록 설정 (보안상 유리)
+    env_file:
+      - .env

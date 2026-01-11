@@ -3,6 +3,8 @@ const SUBNET_PREFIX = "http://192.168.68";
 const RANGE_START = 100; // 스캔 시작 번호 (예: 100)
 const RANGE_END = 110;   // 스캔 끝 번호 (예: 110)
 
+const ABORT_CONTROL_TIME = 700;
+
 /**
  * 개별 IP 체크 함수 (타임아웃 500ms)
  */
@@ -10,7 +12,7 @@ const checkMiner = async (ipSuffix) => {
     const url = `${SUBNET_PREFIX}.${ipSuffix}`;
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 500);
+        const timeoutId = setTimeout(() => controller.abort(), ABORT_CONTROL_TIME);
 
         const res = await fetch(`${url}/api/system/info`, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -64,4 +66,71 @@ const getBitaxeStats = async () => {
     });
 };
 
-module.exports = { getBitaxeStats };
+
+/**
+ * 개별 마이너 재시작 요청
+ */
+const restartMiner = async (url) => {
+    try {
+        const res = await fetch(`${url}/api/system/restart`, {
+            method: 'POST',
+        });
+        return res.ok;
+    } catch (e) {
+        return false;
+    }
+};
+
+/**
+ * 활성화된 모든 마이너 재시작
+ */
+const restartAllMiners = async () => {
+    // 1. 먼저 현재 온라인인 마이너들을 찾습니다.
+    const stats = await getBitaxeStats();
+    const onlineNodes = stats.filter(s => s.status === 'online');
+
+    if (onlineNodes.length === 0) return { success: 0, total: 0 };
+
+    // 2. 각 온라인 노드에 재시작 명령 전송
+    const results = await Promise.all(
+        onlineNodes.map(node => restartMiner(node.url))
+    );
+
+    return {
+        success: results.filter(r => r === true).length,
+        total: onlineNodes.length
+    };
+};
+
+/**
+ * 특정 IP에 무조건 재시작 신호 발송
+ */
+const forceRestartById = async (ipSuffix) => {
+    const url = `${SUBNET_PREFIX}.${ipSuffix}`;
+    return await restartMiner(url);
+};
+
+/**
+ * 범위 내의 모든 IP에 상태 체크 없이 재시작 신호 발송
+ */
+const forceRestartAll = async () => {
+    const promises = [];
+    for (let i = RANGE_START; i <= RANGE_END; i++) {
+        const url = `${SUBNET_PREFIX}.${i}`;
+        promises.push(restartMiner(url));
+    }
+    const results = await Promise.all(promises);
+    return {
+        success: results.filter(r => r === true).length,
+        total: RANGE_END - RANGE_START + 1
+    };
+};
+
+
+
+module.exports = {
+    getBitaxeStats,
+    restartAllMiners,
+    forceRestartById,
+    forceRestartAll
+};

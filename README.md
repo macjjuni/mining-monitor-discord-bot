@@ -1,22 +1,22 @@
-# ⛏️ Bitaxe Mining Monitor Bot
+# ⛏️ Bitaxe Mining Monitor Bot (v2.0)
 
-로컬 네트워크(`192.168.x.x`)에 있는 **Bitaxe ASIC 채굴기**들의 상태를 디스코드에서 실시간으로 모니터링하는 봇입니다.
+로컬 네트워크(`192.168.x.x`) 내의 **Bitaxe ASIC 채굴기**들을 자동으로 스캔하고, 디스코드에서 통합 관리 및 제어할 수 있는 봇입니다.
 
-## ✨ 기능 (Features)
-* **실시간 상태 확인**: `/상태` 명령어로 모든 기기의 해시레이트, 온도, 전력 소모량 조회
-* **통계 집계**: 전체 해시레이트(Total TH/s), 총 전력(W), 평균 온도 자동 계산
-* **상태 감지**: 기기가 오프라인일 경우 연결 실패 표시
-* **Docker 지원**: `host` 네트워크 모드를 사용하여 컨테이너에서 로컬망 채굴기 직접 접근
+## ✨ 주요 기능 (Key Features)
 
-## 🛠️ 기술 스택 (Tech Stack)
-* **Node.js** (v18+)
-* **Discord.js** (v14)
-* **Docker & Docker Compose**
+* **자동 범위 스캔**: 설정된 IP 대역(`RANGE_START` ~ `RANGE_END`)을 자동으로 탐색하여 기기 상태를 수집합니다.
+* **실시간 상태 확인 (`/상태`)**:
+    * **개별 기기**: 호스트명, 해시레이트(TH/s), 온도(°C), 전력(W), Accepted Shares 정보를 실시간으로 표시합니다.
+    * **통계 집계**: 온라인인 모든 기기의 총 해시레이트, 평균 온도, 총 전력 소모량을 자동 계산하여 하단에 요약합니다.
+* **스마트 원격 제어 (`/재시작`)**:
+    * **일반 모드**: 옵션 없이 실행 시 현재 온라인 상태인 기기들만 선별하여 안전하게 재시작합니다.
+    * **특정 기기 지정**: `번호` 옵션에 IP 뒷자리를 입력하여 특정 기기만 핀포인트로 재시작합니다.
+    * **강제 모드 (`force`)**: 기기가 응답이 없는 먹통 상태일 때, 상태 체크를 무시하고 해당 범위 전체에 재시작 패킷을 전송합니다.
 
-## ⚙️ 설정 (Configuration)
+## ⚙️ 환경 설정 (Configuration)
 
-### 1. 환경 변수 설정
-프로젝트 루트에 `.env` 파일을 생성하고 다음 정보를 입력하세요.
+### 1. 환경 변수 (`.env`)
+프로젝트 루트에 `.env` 파일을 생성하고 디스코드 봇 정보를 입력하세요.
 
 ```env
 DISCORD_TOKEN=your_bot_token_here
@@ -24,49 +24,26 @@ CLIENT_ID=your_application_id_here
 GUILD_ID=your_server_id_here
 ```
 
-### 2. 채굴기 IP 등록
-
-bitaxe.js 파일을 열어 모니터링할 Bitaxe 기기의 IP 주소를 수정합니다.
+### 2. 네트워크 스캔 설정
+코드 내에서 본인의 공유기 환경에 맞는 IP 대역을 설정합니다.
 
 ```javascript
-// bitaxe.js
-const servers = [
-"[http://192.168.68.104](http://192.168.68.104)",
-"[http://192.168.68.100](http://192.168.68.100)",
-// 추가 가능
-];
+const SUBNET_PREFIX = "[http://192.168.68](http://192.168.68)"; // 본인의 서브넷 주소
+const RANGE_START = 100;                 // 스캔 시작 번호
+const RANGE_END = 110;                   // 스캔 종료 번호
 ```
 
 ## 🚀 실행 방법 (Deployment)
-이 봇은 로컬 네트워크 접근이 필요하므로 Docker (Host Network) 방식을 권장합니다.
-
 방법 1: Docker Compose (권장)
-서버에 Docker가 설치되어 있다면 가장 간편한 방법입니다.
+로컬 네트워크 장치와 통신하기 위해 network_mode: host 설정이 필수적입니다.
 
-```bash
-# 1. 실행 (빌드 및 백그라운드 실행)
+```
+# 빌드 및 백그라운드 실행
 docker compose up -d --build
 
-# 2. 로그 확인
+# 실시간 로그 확인
 docker compose logs -f
 ```
 
-방법 2: Node.js (로컬 개발)
-개발 환경에서 직접 실행할 때 사용합니다.
-```bash
-# 1. 의존성 설치
-npm install
-
-# 2. 봇 실행
-node bot.js
-```
-
-## 💬 디스코드 명령어 (Commands)
-| 명령어 | 설명 |
-| :--- | :--- |
-| `/상태` | 연결된 모든 Bitaxe 채굴기의 상세 정보와 Total 통계를 보여줍니다. |
-
-
 ## 📝 License
-
 This project is licensed under the MIT License.
